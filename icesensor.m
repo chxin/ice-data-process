@@ -46,7 +46,7 @@ hold on
 plot(G11(:,3));
 hold on
 plot(G12(:,3));
-saveas(gcf, './build/1-original-ice-thickness', 'png')
+
 %划分训练集和测试集
 train=[G6;G2;G8;G9;G4;G11;G12];
 test=[G7;G10];
@@ -73,7 +73,7 @@ ylabel('冰厚')
 string_2 = {'二维PCASVR模型测试集预测结果对比';
            ['mse = ' num2str(error_1test(2)) ' R^2 = ' num2str(error_1test(3))]};
 title(string_2)
-saveas(gcf, './build/3-2d-PCASVR', 'png')
+
 %% 三维主成分分析
 testpridict=test;
 testpridict(:,3)=Predict_1test;
@@ -113,7 +113,6 @@ xlabel('v1')
 ylabel('v2')
 zlabel('冰厚')
 grid on;
-saveas(gcf, './build/2-3d-ice-thickness', 'png')
 %% 数据归一化
 % 输入电压
 [vol_train,inputps] = mapminmax(vol_train');%对电压值的两个特征都分别行归一化处理
@@ -132,13 +131,14 @@ model=SVR(ice_train,vol_train,CrossValidation,P);%训练3维模型
 [Predict_2test,error_2test,prob_estimates2] = svmpredict(ice_test,vol_test,model);%测试集的预测
 Predict_2test= mapminmax('reverse',Predict_2test',outputps);%注意矩阵转置
 Predict_2test=Predict_2test';
+delta=Predict_2test-testpridict(:,3);%差值
 %% 循环迭代算法
 
-
-for i=1:1
+Lambda=0.3;%系数
+for i=1:500
 
 testrepeat=test;
-testrepeat(:,3)=Predict_2test;
+testrepeat(:,3)=Predict_2test-Lambda*delta;
 zrepeat=(testrepeat(:,1:3)-train_Vmean)./train_Vstd;
 Convertrepeat=zrepeat*COEFF; 
 testrepeat(1:row_test,1:2)=Convertrepeat(1:row_test,1:2); 
@@ -152,6 +152,7 @@ ice_testrepeat = ice_testrepeat';
 [Predict_2test,error_2test,prob_estimates2] = svmpredict(ice_testrepeat,vol_testrepeat,model);%测试集的预测
 Predict_2test= mapminmax('reverse',Predict_2test',outputps);%注意矩阵转置
 Predict_2test=Predict_2test';
+delta=Predict_2test-testrepeat(:,3)+Lambda*delta;
 end
 
 %% 作图
@@ -164,7 +165,7 @@ xlabel('样本编号')
 ylabel('冰厚')
 string_2 = {'三维PCASVR模型测试集预测结果'};
 title(string_2)
-saveas(gcf, './build/4-3d-PCASVR-predict', 'png')
+
 figure(5)
 plot(1:length(test(:,3)),test(:,3),'r-*',1:length(test(:,3)),Predict_2test,'b:o');
 grid on
@@ -173,4 +174,4 @@ xlabel('样本编号')
 ylabel('冰厚')
 string_2 = {'三维PCASVR模型测试集预测结果'};
 title(string_2)
-saveas(gcf, './build/5-3d-PCASVR-origin', 'png')
+
